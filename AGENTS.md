@@ -1,33 +1,64 @@
 # AGENTS.md
 
-## Status
+## Key commands
 
-This repo is **design documents only** — no source code, build config, or CI exists yet. The `frontend/`, `backend/`, `docs/`, and `.github/workflows/` directories from `PROJECT_STRUCTURE.md` are not yet created.
+```bash
+# Backend
+cd backend
+uv run ruff check .           # lint
+uv run ruff format .          # format
+uv run pytest                 # test
+uvicorn app.main:app --reload # dev server
 
-## Key design docs
+# Frontend
+cd frontend
+npm run lint
+npm run build
+npm run dev
 
-| File | What it covers |
+# Docker
+docker compose up             # backend:8000, frontend:3000, db:5432
+
+# Database
+cd backend
+alembic upgrade head
+alembic revision --autogenerate -m "msg"
+```
+
+## Verification order
+
+lint → typecheck → test
+
+## Architecture
+
+- **Modular monolith** backend with clear module boundaries per `CODING_STANDARDS.md`
+- **No business logic in API routes** — routes delegate to services, services use repositories
+- **DI pattern**: `app/api/deps.py` provides `get_db`, `get_current_user`
+- **AI provider abstraction**: rule-based analysis first, AI explanations second
+- **Pipeline**: Upload → Parser → Rule Engine → Findings → AI → Report
+
+## Module layout (`backend/app/`)
+
+| Module | Purpose |
 |---|---|
-| `PRD.md` | Product requirements, phases, success criteria |
-| `ARCHITECTURE.md` | Modular monolith, request flow, core modules |
-| `TECH_STACK.md` | Next.js frontend, FastAPI backend, PostgreSQL, AI providers |
-| `ANALYZER_ENGINE.md` | Pipeline: Upload → Parser → Rule Engine → Findings → AI → Report |
-| `DATABASE.md` | Schema: users, projects, analyses, findings, reports |
-| `API_SPEC.md` | REST endpoints under `/api/v1/` |
-| `CODING_STANDARDS.md` | Type hints, SOLID, DI, repository pattern, no logic in routes |
+| `api/v1/` | Route handlers (thin — no logic) |
+| `auth/` | JWT auth, user model/schemas |
+| `analyzers/` | `AnalyzerEngine` orchestrator + `RuleEngine` + per-type analyzers |
+| `parsers/` | `BaseParser` ABC + per-type parsers |
+| `providers/` | `BaseAIProvider` ABC + Gemini/Groq/Ollama |
+| `models/` | SQLAlchemy models (User, Project, Analysis, Finding, Report) |
+| `schemas/` | Pydantic request/response schemas |
+| `services/` | Business logic (AnalysisService) |
+| `repositories/` | Data access layer |
 
-## Architecture (from docs)
+## Coding standards
 
-- **Backend**: FastAPI + SQLAlchemy + Alembic + Pydantic (modular monolith)
-- **Frontend**: Next.js + TypeScript + Tailwind + shadcn/ui
-- **AI**: Provider abstraction over Gemini, Groq, Ollama (rule-based first, AI explanations second)
-- **Pipeline**: File upload → Parser → Rule Engine → Findings → AI explanation → Report
-- **Auth**: JWT-based
+- Python type hints everywhere
+- Repository pattern for data access
+- Structured JSON logging
+- Keep parser, rule engine, and AI provider separate
+- Unit tests for analyzers
 
-## When code is added
+## Design docs
 
-Revisit this file. Expected commands to eventually document:
-- Backend: `uvicorn` / `fastapi` dev server, `alembic migrate`, pytest
-- Frontend: `npm run dev`, `npm run build`, `npm run lint`
-- Docker: `docker compose up`
-- Verification order: lint → typecheck → test
+All moved to `docs/`: PRD, ARCHITECTURE, TECH_STACK, DATABASE, API_SPEC, ANALYZER_ENGINE, CODING_STANDARDS, PROJECT_STRUCTURE.
