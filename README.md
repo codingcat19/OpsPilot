@@ -1,82 +1,124 @@
 # OpsPilot
 
-> AI-assisted DevOps Operations Platform
-
-## Overview
-
-OpsPilot helps DevOps engineers and SREs analyze infrastructure, CI/CD
-pipelines, and production logs. It combines deterministic rule-based
-analysis with AI explanations to provide actionable recommendations.
-
-## Objectives
-
--   Analyze Dockerfiles
--   Analyze Terraform configurations
--   Analyze GitHub Actions workflows
--   Analyze application and infrastructure logs
--   Generate AI-powered explanations
--   Produce downloadable reports
+AI-assisted DevOps operations platform that analyzes infrastructure, CI/CD pipelines, and production logs.
 
 ## Tech Stack
 
--   Frontend: Next.js + TypeScript + Tailwind CSS + shadcn/ui
--   Backend: FastAPI
--   Database: PostgreSQL
--   ORM: SQLAlchemy + Alembic
--   AI Providers: Gemini, Groq, Ollama (pluggable)
--   Docker & Docker Compose
--   GitHub Actions
--   Terraform
--   AWS ECS Fargate (future)
+- **Frontend**: Next.js + TypeScript + Tailwind CSS + shadcn/ui
+- **Backend**: FastAPI + SQLAlchemy + Alembic + Pydantic
+- **Database**: PostgreSQL 16
+- **AI Providers**: Gemini, Groq, Ollama (provider abstraction)
+- **DevOps**: Docker Compose, GitHub Actions
 
-## Repository Structure
+## Quick Start
 
-See `PROJECT_STRUCTURE.md`.
+### Prerequisites
 
-## Development Workflow
+- Docker & Docker Compose
+- Python 3.12+
+- Node.js 20+
 
-1.  Read the documentation first.
-2.  Follow `ARCHITECTURE.md`.
-3.  Keep parser, rule engine and AI provider separate.
-4.  Write tests for new analyzers.
-5.  Keep commits focused.
+### Using Docker Compose
 
-## Documentation
-
--   PRD.md
--   ARCHITECTURE.md
--   TECH_STACK.md
--   PROJECT_STRUCTURE.md
--   DATABASE.md
--   API_SPEC.md
--   ANALYZER_ENGINE.md
--   CODING_STANDARDS.md
-
-## Milestone 1
-
--   [ ] Project scaffolding
--   [ ] Authentication
--   [ ] Database models
--   [ ] Docker analyzer
--   [ ] Terraform analyzer
--   [ ] GitHub Actions analyzer
-
-## Engineering Principles
-
--   Modular monolith
--   Clean Architecture
--   SOLID
--   Dependency Injection
--   Rule-based analysis first
--   AI explains findings; it does not generate them.
-
-## Run
-
-``` bash
-docker compose up --build
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+docker compose up
 ```
 
-## Vision
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API docs: http://localhost:8000/docs
 
-Build a production-ready DevOps assistant with pluggable analyzers and
-AI providers.
+### Local Development
+
+**Backend:**
+
+```bash
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install uv && uv sync
+uvicorn app.main:app --reload
+```
+
+**Frontend:**
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### Database Migrations
+
+```bash
+cd backend
+alembic upgrade head
+alembic revision --autogenerate -m "description"
+```
+
+## Project Structure
+
+```
+opspilot/
+├── backend/           # FastAPI application
+│   ├── app/           # Application code
+│   │   ├── api/       # API routes (v1)
+│   │   ├── auth/      # Authentication module
+│   │   ├── analyzers/ # Analysis engine + rule engine
+│   │   ├── parsers/   # File parsers (Docker, Terraform, GH Actions)
+│   │   ├── providers/ # AI provider abstraction
+│   │   ├── models/    # SQLAlchemy models
+│   │   ├── schemas/   # Pydantic schemas
+│   │   ├── services/  # Business logic
+│   │   ├── repositories/ # Data access layer
+│   │   └── core/      # Shared utilities
+│   ├── tests/         # Pytest tests
+│   └── alembic/       # Database migrations
+├── frontend/          # Next.js application
+│   └── src/           # Source code
+│       ├── app/       # App router pages
+│       ├── components/# React components
+│       ├── lib/       # Utilities (API client, auth)
+│       └── types/     # TypeScript types
+├── docs/              # Design documents
+└── docker-compose.yml
+```
+
+## Analysis Pipeline
+
+```
+Upload → Parser → Rule Engine → Findings → AI Explanation → Report
+```
+
+Supported file types (v1):
+- Dockerfiles
+- Terraform configurations
+- GitHub Actions workflows
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/auth/login` | User login |
+| POST | `/api/v1/auth/register` | User registration |
+| GET | `/api/v1/projects` | List projects |
+| POST | `/api/v1/projects` | Create project |
+| POST | `/api/v1/analyze/docker` | Analyze Dockerfile |
+| POST | `/api/v1/analyze/terraform` | Analyze Terraform |
+| POST | `/api/v1/analyze/github-actions` | Analyze GH Actions |
+| GET | `/api/v1/reports/{id}` | Get analysis report |
+
+## Development
+
+```bash
+# Lint
+cd backend && uv run ruff check .
+cd frontend && npm run lint
+
+# Test
+cd backend && uv run pytest
+
+# Format
+cd backend && uv run ruff format .
+```
