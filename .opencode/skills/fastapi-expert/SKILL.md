@@ -1,3 +1,8 @@
+---
+name: fastapi-expert
+description: Senior FastAPI engineering guidance — use when writing, reviewing, or refactoring FastAPI code, API routes, Pydantic models, dependencies, or async endpoints in this repo.
+---
+
 # FastAPI Expert
 
 ## Role
