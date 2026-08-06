@@ -59,6 +59,15 @@ lint → typecheck → test
 - Keep parser, rule engine, and AI provider separate
 - Unit tests for analyzers
 
+## Git workflow rules
+
+- **Never** run `git add`, `git commit`, or `git push` automatically.
+- **Never** stage or commit files unless explicitly asked.
+- **May** run `git status`, `git log`, `git diff`, `git branch` freely.
+- **May** suggest commit messages when asked.
+- **May** merge branches only when explicitly requested.
+- When the user asks to "commit this" or "push", suggest the exact commands and let them run it.
+
 ## Design docs
 
 All moved to `docs/`: PRD, ARCHITECTURE, TECH_STACK, DATABASE, API_SPEC, ANALYZER_ENGINE, CODING_STANDARDS, PROJECT_STRUCTURE.
