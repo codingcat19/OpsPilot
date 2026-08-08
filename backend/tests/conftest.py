@@ -9,8 +9,7 @@ from app.main import app
 @pytest.fixture(scope="session", autouse=True)
 async def clean_database():
     async with engine.begin() as conn:
-        tables = "users, projects, analyses, findings, reports"
-        await conn.execute(text(f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"))
+        await conn.execute(text("TRUNCATE TABLE users RESTART IDENTITY CASCADE"))
 
 
 @pytest.fixture
