@@ -1,14 +1,5 @@
 import pytest
-from httpx import ASGITransport, AsyncClient
-
-from app.main import app
-
-
-@pytest.fixture
-async def client():
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
+from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
@@ -113,7 +104,7 @@ async def test_me_with_valid_token(client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_me_without_token(client: AsyncClient) -> None:
     response = await client.get("/api/v1/auth/me")
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
