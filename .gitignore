@@ -50,3 +50,7 @@ htmlcov/
 
 # Alembic
 backend/alembic/versions/*.pyc
+
+# Screenshots
+choose-models.png
+prompt-flow.png
