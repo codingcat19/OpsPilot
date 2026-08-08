@@ -1,8 +1,7 @@
 # AGENT_STATE.md — Current Session Context
 
-> Last updated: 2026-08-07
-> Branch: `main`
-> Commit: `a6101bb fix: replace passlib with bcrypt and fix frontend TypeScript header type`
+> Last updated: 2026-08-08
+> Branch: `feat/authentication`
 
 ## What is OpsPilot?
 
@@ -25,7 +24,7 @@ AI-assisted DevOps platform. Users upload IaC files (Dockerfiles, Terraform, Git
 - **Dependencies synced**: `uv.lock` matches `pyproject.toml` (`uv lock --check` passes)
   - `bcrypt>=4.0.0,<4.1.0` (replaced passlib, which is unmaintained)
   - `email-validator>=2.3.0` added for pydantic email validation
-- **Tests**: `tests/test_auth.py` — 10 test cases written (see Known Issues)
+- **Tests**: `tests/test_auth.py` — 10 auth tests **all passing** (run locally against Docker Postgres)
 
 ### Frontend (`frontend/src/`)
 - Next.js App Router pages: `/`, `/login`, `/register`, `/dashboard`
@@ -41,15 +40,23 @@ AI-assisted DevOps platform. Users upload IaC files (Dockerfiles, Terraform, Git
 - `.github/workflows/ci.yml` — CI pipeline
 - OpenCode config: `opencode.json` with git permission rules
 - OpenCode skills: architect, fastapi-expert, nextjs-expert, pr-reviewer, security-reviewer, technical-documentation, test-generator (all project-local in `.opencode/skills/`)
+- README.md updated with install deps, migrations (local + Docker), `uv` prerequisite
 
 ## What's Left / Known Issues
 
-### Tests not passing against DB
-- 7 of 10 auth tests fail with `OSError: Multiple exceptions` — they need a running PostgreSQL. Run via: `docker compose exec backend uv run pytest tests/test_auth.py -v`
-- `test_me_without_token` asserts `403` but gets `401` — needs assertion fix in `tests/test_auth.py:116`: change `403` → `401`
+### Auth tests — RESOLVED
+The asyncpg connection corruption issue that previously broke DB-touching auth tests is **fixed**. All 10 auth tests pass.
 
-### Unstaged changes
-- Working tree is clean (all changes committed)
+- **Root cause of original issue**: `repo.create()` calls `session.commit()` which commits the connection-level transaction, corrupting the asyncpg connection for subsequent tests
+- **Fix applied**:
+  1. `pyproject.toml` sets `asyncio_default_test_loop_scope = "session"` so all tests share one event loop (avoids cross-loop asyncpg connection reuse)
+  2. `tests/conftest.py` adds a session-scoped `clean_database` autouse fixture that truncates all tables before the suite (tests were not isolated; stale rows caused duplicate-email 400)
+- **Assertion fix**: `test_me_without_token` now asserts `401` (FastAPI `HTTPBearer` returns 401 for a missing token; 403 is only for deactivated users via `get_current_active_user`)
+
+### Install dev deps in Docker for testing
+```bash
+docker compose exec backend uv sync --frozen --all-extras
+```
 
 ### Not yet implemented
 - Project CRUD endpoints (skeleton exists in `api/v1/projects.py`, `projects/service.py`)
@@ -57,19 +64,22 @@ AI-assisted DevOps platform. Users upload IaC files (Dockerfiles, Terraform, Git
 - Report generation
 - Frontend→Backend integration (frontend uses placeholder URLs)
 - Real AI provider integration (stubs exist in `providers/`)
-- `pyproject.toml` run scripts: `alembic` and `alembic revision` need `uv run` prefix in commands
 
 ## Quick Reference
 
-### Run auth tests
+### Run auth tests (local, DB in Docker)
 ```bash
-docker compose up -d db                          # start postgres
-cd backend && docker compose exec backend uv run pytest tests/test_auth.py -v
+docker compose up -d db                    # Postgres only
+cd backend && uv sync --frozen --all-extras  # install dev deps once
+uv run pytest tests/test_auth.py -v
 ```
 
-### Fix the one test assertion
+### Run auth tests (Docker)
 ```bash
-# tests/test_auth.py line 116: change 403 → 401
+docker compose up -d db
+docker compose build backend                 # rebuild to bake in current code
+docker compose exec backend uv sync --frozen --all-extras   # first time only
+docker compose exec backend uv run pytest tests/test_auth.py -v
 ```
 
 ### Start dev (Docker)
@@ -103,22 +113,27 @@ cd backend && docker compose exec backend uv run alembic revision --autogenerate
 | `backend/app/api/v1/auth.py` | Register, login, /me endpoints |
 | `backend/app/api/deps.py` | `get_current_user`, `get_current_active_user` DI |
 | `backend/app/models/analysis.py` | All SQLAlchemy models (User, Project, Analysis, Finding, Report) |
+| `backend/app/repositories/user_repository.py` | User CRUD — `create()` calls `session.commit()` (test issue) |
 | `backend/app/config.py` | Settings via pydantic-settings |
 | `backend/app/database.py` | async engine + session factory |
 | `backend/alembic/env.py` | Async Alembic env (async_engine_from_config) |
 | `backend/alembic/versions/001_initial_schema.py` | Creates all 5 tables |
-| `backend/tests/test_auth.py` | 10 auth tests (7 need DB, 1 assertion to fix) |
+| `backend/tests/test_auth.py` | 10 auth tests — all passing |
+| `backend/tests/conftest.py` | `client` fixture + session-scoped `clean_database` truncation fixture |
 | `frontend/src/lib/api.ts` | HTTP client (headers: `Record<string, string>`) |
 | `frontend/src/lib/auth.ts` | Token storage helpers |
 | `Dockerfile.backend` | Backend image — uses `uv run` for everything |
 | `docker-compose.yml` | 3 services, no auto-migration |
 | `opencode.json` | Git permission deny rules |
+| `README.md` | Quick start, install deps, migrations |
+| `AGENT_STATE.md` | This file — session context for agents |
 
 ## Conventions
 
 - **No business logic in routes** — routes call services, services call repositories
 - **Python type hints everywhere**
-- **Tests run inside Docker** (needs PostgreSQL): `docker compose exec backend uv run pytest`
+- **Backend container runs baked-in code (no volume mount)** — edit code → `docker compose build backend` before testing inside Docker, or run tests locally against the Dockerized DB
+- **Tests run locally against Docker Postgres** (preferred): `docker compose up -d db`, then `cd backend && uv run pytest`
 - **Never auto-commit** — suggest commit messages, let user run git commands
 - **`uv run` prefix** — never activate venv manually; `uv run` handles it
 - **Lockfile tracked in git** — `uv.lock` is committed, not ignored
