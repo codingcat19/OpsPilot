@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 from fastapi import HTTPException, status
@@ -12,6 +12,7 @@ from app.repositories.user_repository import UserRepository
 
 class AuthService:
     def __init__(self, db: AsyncSession) -> None:
+        self.db = db
         self.repo = UserRepository(db)
 
     @staticmethod
@@ -24,7 +25,7 @@ class AuthService:
 
     @staticmethod
     def create_access_token(user_id: str) -> str:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
+        expire = datetime.now(UTC) + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
         payload = {"sub": user_id, "exp": expire}
         return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
@@ -40,7 +41,9 @@ class AuthService:
             email=email,
             hashed_password=self.hash_password(password),
         )
-        return await self.repo.create(user)
+        user = await self.repo.create(user)
+        await self.db.commit()
+        return user
 
     async def authenticate(self, email: str, password: str) -> User:
         user = await self.repo.get_by_email(email)
