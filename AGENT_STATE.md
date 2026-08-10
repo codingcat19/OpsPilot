@@ -1,7 +1,7 @@
 # AGENT_STATE.md — Current Session Context
 
 > Last updated: 2026-08-08
-> Branch: `feat/authentication`
+> Branch: `main` (auth PR merged)
 
 ## What is OpsPilot?
 
@@ -58,6 +58,12 @@ The asyncpg connection corruption issue that previously broke DB-touching auth t
 docker compose exec backend uv sync --frozen --all-extras
 ```
 
+### Auth gaps — known, not blockers
+Authentication is complete for MVP. These are deferred improvements, note for when security is hardened:
+- **No refresh token flow** — only single access token (JWT_EXPIRE_MINUTES default 1440). Add refresh token rotation when session-lifetime control is needed
+- **No rate limiting on `/login` / `/register`** — vulnerable to brute-force and account enumeration. Add slowapi or similar middleware when exposed publicly
+- **No logout / token revocation** — stateless JWT, valid until expiry. Acceptable for MVP; requires a denylist or short-lived tokens when revocation is needed
+
 ### Not yet implemented
 - Project CRUD endpoints (skeleton exists in `api/v1/projects.py`, `projects/service.py`)
 - File upload + analysis pipeline (skeleton exists in parsers/analyzers)
@@ -113,7 +119,7 @@ cd backend && docker compose exec backend uv run alembic revision --autogenerate
 | `backend/app/api/v1/auth.py` | Register, login, /me endpoints |
 | `backend/app/api/deps.py` | `get_current_user`, `get_current_active_user` DI |
 | `backend/app/models/analysis.py` | All SQLAlchemy models (User, Project, Analysis, Finding, Report) |
-| `backend/app/repositories/user_repository.py` | User CRUD — `create()` calls `session.commit()` (test issue) |
+| `backend/app/repositories/user_repository.py` | User CRUD — `create()` flushes only; commit owned by service layer |
 | `backend/app/config.py` | Settings via pydantic-settings |
 | `backend/app/database.py` | async engine + session factory |
 | `backend/alembic/env.py` | Async Alembic env (async_engine_from_config) |
