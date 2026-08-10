@@ -36,7 +36,7 @@ CMD ["python", "app.py"]
 
 
 async def test_parse_multistage_with_continuations_and_comments():
-    dockerfile = """\\
+    dockerfile = """
 # syntax=docker/dockerfile:1
 FROM python:3.12 AS builder
 RUN pip install \\
