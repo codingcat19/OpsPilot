@@ -16,6 +16,7 @@ AI-assisted DevOps operations platform that analyzes infrastructure, CI/CD pipel
 
 - Docker & Docker Compose
 - Python 3.12+
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (Python package manager)
 - Node.js 20+
 
 ### Using Docker Compose
@@ -23,6 +24,8 @@ AI-assisted DevOps operations platform that analyzes infrastructure, CI/CD pipel
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
+docker compose up -d db
+docker compose exec backend uv run alembic upgrade head
 docker compose up
 ```
 
@@ -30,15 +33,13 @@ docker compose up
 - Backend API: http://localhost:8000
 - API docs: http://localhost:8000/docs
 
-### Local Development
+### Install Dependencies
 
 **Backend:**
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install uv && uv sync
-uvicorn app.main:app --reload
+uv sync                # install all deps (runtime + dev)
 ```
 
 **Frontend:**
@@ -46,15 +47,39 @@ uvicorn app.main:app --reload
 ```bash
 cd frontend
 npm install
+```
+
+### Local Development
+
+**Backend:**
+
+```bash
+cd backend
+uv run uvicorn app.main:app --reload
+```
+
+**Frontend:**
+
+```bash
+cd frontend
 npm run dev
 ```
 
 ### Database Migrations
 
+**Local:**
+
 ```bash
 cd backend
-alembic upgrade head
-alembic revision --autogenerate -m "description"
+uv run alembic upgrade head
+uv run alembic revision --autogenerate -m "description"
+```
+
+**Docker:**
+
+```bash
+docker compose exec backend uv run alembic upgrade head
+docker compose exec backend uv run alembic revision --autogenerate -m "description"
 ```
 
 ## Project Structure
@@ -116,8 +141,8 @@ Supported file types (v1):
 cd backend && uv run ruff check .
 cd frontend && npm run lint
 
-# Test
-cd backend && uv run pytest
+# Test (requires running PostgreSQL)
+cd backend && docker compose exec backend uv run pytest
 
 # Format
 cd backend && uv run ruff format .

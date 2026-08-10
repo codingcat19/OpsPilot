@@ -8,11 +8,11 @@ export async function apiClient<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { token, ...fetchOptions } = options;
+  const { token, headers: customHeaders, ...fetchOptions } = options;
 
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...options.headers,
+    ...((customHeaders as Record<string, string>) ?? {}),
   };
 
   if (token) {
