@@ -35,7 +35,9 @@ class Analysis(Base, TimestampMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("projects.id"))
-    file_type: Mapped[str] = mapped_column(String(50), nullable=False)  # docker, terraform, github-actions, logs
+    file_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # docker, terraform, github-actions, logs
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
 
@@ -50,7 +52,9 @@ class Finding(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     analysis_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("analyses.id"))
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    severity: Mapped[str] = mapped_column(String(20), nullable=False)  # critical, high, medium, low, info
+    severity: Mapped[str] = mapped_column(
+        String(20), nullable=False
+    )  # critical, high, medium, low, info
     description: Mapped[str] = mapped_column(Text, nullable=False)
     recommendation: Mapped[str | None] = mapped_column(Text)
     source: Mapped[str | None] = mapped_column(String(100))
@@ -62,7 +66,9 @@ class Report(Base, TimestampMixin):
     __tablename__ = "reports"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    analysis_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("analyses.id"), unique=True)
+    analysis_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("analyses.id"), unique=True
+    )
     summary: Mapped[str] = mapped_column(Text)
     ai_explanation: Mapped[str | None] = mapped_column(Text)
 

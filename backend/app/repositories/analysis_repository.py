@@ -16,9 +16,7 @@ class AnalysisRepository:
         return result.scalar_one_or_none()
 
     async def get_by_project(self, project_id: uuid.UUID) -> Sequence[Analysis]:
-        result = await self.db.execute(
-            select(Analysis).where(Analysis.project_id == project_id)
-        )
+        result = await self.db.execute(select(Analysis).where(Analysis.project_id == project_id))
         return result.scalars().all()
 
     async def create(self, analysis: Analysis) -> Analysis:
