@@ -1,7 +1,7 @@
 # AGENT_STATE.md — Current Session Context
 
-> Last updated: 2026-08-08
-> Branch: `feat/authentication`
+> Last updated: 2026-08-10
+> Branch: `main` (auth PR merged)
 
 ## What is OpsPilot?
 
@@ -24,7 +24,12 @@ AI-assisted DevOps platform. Users upload IaC files (Dockerfiles, Terraform, Git
 - **Dependencies synced**: `uv.lock` matches `pyproject.toml` (`uv lock --check` passes)
   - `bcrypt>=4.0.0,<4.1.0` (replaced passlib, which is unmaintained)
   - `email-validator>=2.3.0` added for pydantic email validation
-- **Tests**: `tests/test_auth.py` — 10 auth tests **all passing** (run locally against Docker Postgres)
+- **Docker analyzer pipeline implemented**:
+  - `parsers/docker_parser.py` — line-based Dockerfile parser → `{instructions, stages}` (handles `\` continuations, comments, case-insensitive instructions, multi-stage `FROM ... AS`, `@digest`, `registry:port` tags)
+  - `analyzers/rule_engine.py` — dispatcher; `docker` → `DockerAnalyzer`, other types return `[]` for now
+  - `analyzers/engine.py` — `AnalyzerEngine.analyze(content, file_type)`: parse → `rule_engine.evaluate`; raises `ValueError` on unsupported file type
+  - `analyzers/docker_analyzer.py` — 8 rules: missing USER (high), unpinned base tag (medium), hardcoded secret in ENV/ARG (critical), `ADD` over `COPY` (medium), pipe-to-shell (high), apt lists not cleaned (medium), pip cache left (medium), missing HEALTHCHECK (info), SSH port exposed (low)
+  - 25 unit tests in `tests/test_docker_analyzer.py` — parser, each rule, engine end-to-end, rule engine dispatch
 
 ### Frontend (`frontend/src/`)
 - Next.js App Router pages: `/`, `/login`, `/register`, `/dashboard`
@@ -58,9 +63,15 @@ The asyncpg connection corruption issue that previously broke DB-touching auth t
 docker compose exec backend uv sync --frozen --all-extras
 ```
 
+### Auth gaps — known, not blockers
+Authentication is complete for MVP. These are deferred improvements, note for when security is hardened:
+- **No refresh token flow** — only single access token (JWT_EXPIRE_MINUTES default 1440). Add refresh token rotation when session-lifetime control is needed
+- **No rate limiting on `/login` / `/register`** — vulnerable to brute-force and account enumeration. Add slowapi or similar middleware when exposed publicly
+- **No logout / token revocation** — stateless JWT, valid until expiry. Acceptable for MVP; requires a denylist or short-lived tokens when revocation is needed
+
 ### Not yet implemented
 - Project CRUD endpoints (skeleton exists in `api/v1/projects.py`, `projects/service.py`)
-- File upload + analysis pipeline (skeleton exists in parsers/analyzers)
+- File upload + analysis pipeline wiring (Docker parser/analyzer themselves are done — need upload endpoint + service)
 - Report generation
 - Frontend→Backend integration (frontend uses placeholder URLs)
 - Real AI provider integration (stubs exist in `providers/`)
@@ -113,12 +124,17 @@ cd backend && docker compose exec backend uv run alembic revision --autogenerate
 | `backend/app/api/v1/auth.py` | Register, login, /me endpoints |
 | `backend/app/api/deps.py` | `get_current_user`, `get_current_active_user` DI |
 | `backend/app/models/analysis.py` | All SQLAlchemy models (User, Project, Analysis, Finding, Report) |
-| `backend/app/repositories/user_repository.py` | User CRUD — `create()` calls `session.commit()` (test issue) |
+| `backend/app/repositories/user_repository.py` | User CRUD — `create()` flushes only; commit owned by service layer |
 | `backend/app/config.py` | Settings via pydantic-settings |
 | `backend/app/database.py` | async engine + session factory |
 | `backend/alembic/env.py` | Async Alembic env (async_engine_from_config) |
 | `backend/alembic/versions/001_initial_schema.py` | Creates all 5 tables |
 | `backend/tests/test_auth.py` | 10 auth tests — all passing |
+| `backend/tests/test_docker_analyzer.py` | 25 Docker analyzer tests — all passing |
+| `backend/app/parsers/docker_parser.py` | Dockerfile parser → instructions + stages |
+| `backend/app/analyzers/engine.py` | `analyze(content, file_type)` — parse then run rules |
+| `backend/app/analyzers/rule_engine.py` | Dispatch `file_type` → per-type analyzer |
+| `backend/app/analyzers/docker_analyzer.py` | 8 Docker rules returning `Finding`s |
 | `backend/tests/conftest.py` | `client` fixture + session-scoped `clean_database` truncation fixture |
 | `frontend/src/lib/api.ts` | HTTP client (headers: `Record<string, string>`) |
 | `frontend/src/lib/auth.ts` | Token storage helpers |

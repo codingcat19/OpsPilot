@@ -1,10 +1,16 @@
+from app.analyzers.docker_analyzer import DockerAnalyzer
 from app.parsers.base import Finding
 
 
 class RuleEngine:
-    """Rule-based analysis engine. Evaluates parsed content against defined rules."""
+    """Rule-based analysis engine. Dispatches parsed content to the matching analyzer."""
+
+    _analyzer_classes: dict[str, type] = {
+        "docker": DockerAnalyzer,
+    }
 
     async def evaluate(self, parsed_data: dict, file_type: str) -> list[Finding]:
-        # TODO: implement rule evaluation
-        # Rule-based analysis first, AI explanations second
-        raise NotImplementedError
+        analyzer_class = self._analyzer_classes.get(file_type)
+        if analyzer_class is None:
+            return []  # no rule-based findings for unimplemented types
+        return await analyzer_class().analyze(parsed_data)
