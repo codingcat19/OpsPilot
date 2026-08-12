@@ -1,4 +1,5 @@
 import pytest
+from lark.exceptions import UnexpectedInput
 
 from app.analyzers.engine import AnalyzerEngine
 from app.analyzers.rule_engine import RuleEngine
@@ -92,7 +93,7 @@ async def test_parse_empty_content():
 
 
 async def test_parse_invalid_hcl_raises():
-    with pytest.raises(Exception):
+    with pytest.raises(UnexpectedInput):
         await TerraformParser().parse(b"resource aws_s3_bucket { bucket =")
 
 

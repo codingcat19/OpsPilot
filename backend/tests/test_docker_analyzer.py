@@ -197,4 +197,4 @@ async def test_engine_end_to_end_docker():
 
 async def test_engine_unsupported_file_type_raises():
     with pytest.raises(ValueError, match="Unsupported file type"):
-        await AnalyzerEngine().analyze(b"{}", "terraform")
+        await AnalyzerEngine().analyze(b"{}", "yaml")
