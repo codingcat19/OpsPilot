@@ -1,6 +1,7 @@
 from app.analyzers.rule_engine import RuleEngine
 from app.parsers.base import BaseParser, Finding
 from app.parsers.docker_parser import DockerParser
+from app.parsers.terraform_parser import TerraformParser
 
 
 class AnalyzerEngine:
@@ -8,6 +9,7 @@ class AnalyzerEngine:
 
     _parser_classes: dict[str, type[BaseParser]] = {
         "docker": DockerParser,
+        "terraform": TerraformParser,
     }
 
     def __init__(self, rule_engine: RuleEngine | None = None) -> None:

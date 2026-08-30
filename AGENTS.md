@@ -64,8 +64,9 @@ lint → typecheck → test
 - **Never** run `git add`, `git commit`, or `git push` automatically.
 - **Never** stage or commit files unless explicitly asked.
 - **May** run `git status`, `git log`, `git diff`, `git branch` freely.
-- **May** suggest commit messages when asked.
 - **May** merge branches only when explicitly requested.
+- **Commit suggestions** — only give them when the user asks (e.g. "suggest a commit message"). Present each group as a paired `git add <files>` + `git commit -m "<msg>"` block, ready to copy-paste.
+- Group files into sensible commits by concern (deps, feature, endpoint, tests, docs); user can split or merge them further.
 - When the user asks to "commit this" or "push", suggest the exact commands and let them run it.
 
 ## Design docs

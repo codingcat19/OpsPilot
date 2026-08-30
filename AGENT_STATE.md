@@ -1,7 +1,7 @@
 # AGENT_STATE.md — Current Session Context
 
-> Last updated: 2026-08-10
-> Branch: `main` (auth PR merged)
+> Last updated: 2026-08-12
+> Branch: `main` (terraform analyzer added)
 
 ## What is OpsPilot?
 
@@ -30,6 +30,13 @@ AI-assisted DevOps platform. Users upload IaC files (Dockerfiles, Terraform, Git
   - `analyzers/engine.py` — `AnalyzerEngine.analyze(content, file_type)`: parse → `rule_engine.evaluate`; raises `ValueError` on unsupported file type
   - `analyzers/docker_analyzer.py` — 8 rules: missing USER (high), unpinned base tag (medium), hardcoded secret in ENV/ARG (critical), `ADD` over `COPY` (medium), pipe-to-shell (high), apt lists not cleaned (medium), pip cache left (medium), missing HEALTHCHECK (info), SSH port exposed (low)
   - 25 unit tests in `tests/test_docker_analyzer.py` — parser, each rule, engine end-to-end, rule engine dispatch
+- **Terraform analyzer pipeline implemented**:
+  - `parsers/terraform_parser.py` — HCL2 parser via `python-hcl2` dependency → `{resources, variables}`; normalizes quoted keys/values, strips `__is_block__` markers, preserves `${...}` expressions, raises on invalid HCL
+  - `analyzers/terraform_analyzer.py` — 10 rules: public S3 ACL (critical), unblocked S3 public access (high), world-open security group (critical), unencrypted EBS/RDS/S3 (high), public RDS (high), secret variable default (critical), hardcoded credential in resource (critical), missing tags (low), default VPC (medium)
+  - Registered in `engine.py` (`terraform: TerraformParser`) and `rule_engine.py` (`terraform: TerraformAnalyzer`)
+  - `api/v1/analyze.py` — `POST /terraform` runs `AnalyzerEngine` and returns findings (HTTP 400 on invalid HCL); returns findings directly, not yet via service (matches docker stub pattern)
+  - 27 unit tests in `tests/test_terraform_analyzer.py` — parser, each rule, engine end-to-end, rule engine dispatch
+  - `test_docker_analyzer.py::test_engine_unsupported_file_type_raises` updated from `terraform` to `yaml` (terraform now supported)
 
 ### Frontend (`frontend/src/`)
 - Next.js App Router pages: `/`, `/login`, `/register`, `/dashboard`
@@ -71,7 +78,8 @@ Authentication is complete for MVP. These are deferred improvements, note for wh
 
 ### Not yet implemented
 - Project CRUD endpoints (skeleton exists in `api/v1/projects.py`, `projects/service.py`)
-- File upload + analysis pipeline wiring (Docker parser/analyzer themselves are done — need upload endpoint + service)
+- File upload + analysis pipeline wiring — Docker + Terraform parsers/analyzers are done; `AnalysisService.run_analysis` (`services/analysis_service.py`) is still `NotImplementedError`, so no persistence, AI explanations, or report generation yet
+- GitHub Actions parser (`parsers/github_actions_parser.py`) and analyzer (`analyzers/github_actions_analyzer.py`) — stubs
 - Report generation
 - Frontend→Backend integration (frontend uses placeholder URLs)
 - Real AI provider integration (stubs exist in `providers/`)
@@ -132,6 +140,9 @@ cd backend && docker compose exec backend uv run alembic revision --autogenerate
 | `backend/tests/test_auth.py` | 10 auth tests — all passing |
 | `backend/tests/test_docker_analyzer.py` | 25 Docker analyzer tests — all passing |
 | `backend/app/parsers/docker_parser.py` | Dockerfile parser → instructions + stages |
+| `backend/app/parsers/terraform_parser.py` | HCL2 parser via python-hcl2 → resources + variables |
+| `backend/app/analyzers/terraform_analyzer.py` | 10 Terraform rules returning `Finding`s |
+| `backend/tests/test_terraform_analyzer.py` | 27 Terraform analyzer tests — all passing |
 | `backend/app/analyzers/engine.py` | `analyze(content, file_type)` — parse then run rules |
 | `backend/app/analyzers/rule_engine.py` | Dispatch `file_type` → per-type analyzer |
 | `backend/app/analyzers/docker_analyzer.py` | 8 Docker rules returning `Finding`s |

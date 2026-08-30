@@ -1,4 +1,5 @@
 from app.analyzers.docker_analyzer import DockerAnalyzer
+from app.analyzers.terraform_analyzer import TerraformAnalyzer
 from app.parsers.base import Finding
 
 
@@ -7,6 +8,7 @@ class RuleEngine:
 
     _analyzer_classes: dict[str, type] = {
         "docker": DockerAnalyzer,
+        "terraform": TerraformAnalyzer,
     }
 
     async def evaluate(self, parsed_data: dict, file_type: str) -> list[Finding]:

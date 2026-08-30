@@ -16,9 +16,7 @@ class ProjectRepository:
         return result.scalar_one_or_none()
 
     async def get_by_owner(self, owner_id: uuid.UUID) -> Sequence[Project]:
-        result = await self.db.execute(
-            select(Project).where(Project.owner_id == owner_id)
-        )
+        result = await self.db.execute(select(Project).where(Project.owner_id == owner_id))
         return result.scalars().all()
 
     async def create(self, project: Project) -> Project:
